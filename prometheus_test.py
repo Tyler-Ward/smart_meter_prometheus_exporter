@@ -7,11 +7,13 @@ import decoder
 
 smart_meter_electric_metering_instantaneous_demand_watts = None
 smart_meter_electric_metering_current_summation_delivered_watthours = None
+smart_meter_gas_metering_current_summation_delivered_m3 = None
 
 
 def process_data_block(data):
     global smart_meter_electric_metering_instantaneous_demand_watts
     global smart_meter_electric_metering_current_summation_delivered_watthours
+    global smart_meter_gas_metering_current_summation_delivered_m3
 
     data = decoder.decode_data_block(data)
 
@@ -30,6 +32,16 @@ def process_data_block(data):
                     # meter reading
                     smart_meter_electric_metering_current_summation_delivered_watthours = decoded["parameters"][decoder.MeteringParmeter.current_summation_delivered.value]["value"]
                     print("meter reading = {} kwh".format(smart_meter_electric_metering_current_summation_delivered_watthours/1000))
+
+        if decoded["meter"] == b'\x00\x00\x00\x02':
+            # gas meter
+            if decoded["cluster"] == decoder.Cluster.metering.value:
+                # metering
+                if decoder.MeteringParmeter.current_summation_delivered.value in decoded["parameters"]:
+                    # meter reading
+                    smart_meter_gas_metering_current_summation_delivered_m3 = decoded["parameters"][decoder.MeteringParmeter.current_summation_delivered.value]["value"]/1000
+                    print("gas meter reading = {} m3".format(smart_meter_gas_metering_current_summation_delivered_m3))
+
 
 
 
@@ -53,7 +65,11 @@ class MeterCollector(Collector):
                 "smart_meter_electric_metering_current_summation_delivered_watthours", 
                 "current meter reading in watt hours",
                 value = smart_meter_electric_metering_current_summation_delivered_watthours)
-
+        if smart_meter_gas_metering_current_summation_delivered_m3 is not None:
+            yield CounterMetricFamily(
+                "smart_meter_gas_metering_current_summation_delivered_m3",
+                "current meter reading in cubic meters",
+                value = smart_meter_gas_metering_current_summation_delivered_m3)
 
 
 
