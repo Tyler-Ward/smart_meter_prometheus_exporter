@@ -2,61 +2,34 @@ import serial
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
 from prometheus_client.registry import Collector
 import prometheus_client.registry
+import decoder
 
 
 smart_meter_electric_metering_instantaneous_demand_watts = None
 smart_meter_electric_metering_current_summation_delivered_watthours = None
 
 
-def decode_data_block(data: bytes) -> bytes:
-    '''Removes control signals and substitutions from a recieved data block'''
-    output_data = bytearray()
-    marker = 0
-    while marker < len(data):
-        if data[marker] == 0xF0:
-            print("seen F0 marker")
-        if data[marker] == 0xF1:
-            # trim start of message flag
-            if marker != 0:
-                print("Start marker not at beginning invalid packet")
-            marker += 1
-            continue
-        if data[marker] == 0xF2:
-            # trim end of message flag
-            if marker != (len(data)-1):
-                print("Start marker not at beginning invalid packet")
-            marker += 1
-            continue
-        if data[marker] == 0xF3:
-            # repalce substitution with correct value
-            output_data.append(0xF0 + data[marker+1])
-            marker += 2
-            continue
-
-        output_data.append(data[marker])
-        marker += 1
-    return bytes(output_data)
-
-
 def process_data_block(data):
     global smart_meter_electric_metering_instantaneous_demand_watts
     global smart_meter_electric_metering_current_summation_delivered_watthours
 
+    data = decoder.decode_data_block(data)
 
-    data = decode_data_block(data)
+    if data[0] == 0x00:
+        decoded = decoder.value_decoder(data)
 
-    if data[0:4] == b'\x00\x99\x57\x01':
-        # elec meter
-        if data[4:6] == b'\x02\x07':
-            # metering
-            if data[11:15] == b'\x00\x04\x00\x2a':
-                # current power
-                smart_meter_electric_metering_instantaneous_demand_watts = int.from_bytes(data[15:17], "little")
-                print("current_usage = {} w".format(smart_meter_electric_metering_instantaneous_demand_watts))
-            if data[6:10] == b'\x00\x00\x00\x25':
-                # meter reading
-                smart_meter_electric_metering_current_summation_delivered_watthours = int.from_bytes(data[10:16], "little")
-                print("meter reading = {} kwh".format(smart_meter_electric_metering_current_summation_delivered_watthours/1000))
+        if decoded["meter"] == b'\x00\x99\x57\x01':
+            # elec meter
+            if decoded["cluster"] == decoder.Cluster.metering.value:
+                # metering
+                if decoder.MeteringParmeter.instantaneous_demand.value in decoded["parameters"]:
+                    # current power
+                    smart_meter_electric_metering_instantaneous_demand_watts = decoded["parameters"][decoder.MeteringParmeter.instantaneous_demand.value]["value"]
+                    print("current_usage = {} w".format(smart_meter_electric_metering_instantaneous_demand_watts))
+                if decoder.MeteringParmeter.current_summation_delivered.value in decoded["parameters"]:
+                    # meter reading
+                    smart_meter_electric_metering_current_summation_delivered_watthours = decoded["parameters"][decoder.MeteringParmeter.current_summation_delivered.value]["value"]
+                    print("meter reading = {} kwh".format(smart_meter_electric_metering_current_summation_delivered_watthours/1000))
 
 
 
