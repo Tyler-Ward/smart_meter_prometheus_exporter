@@ -3,11 +3,42 @@ from enum import Enum
 
 class Cluster(Enum):
     metering = 0x0702
+    prepayment = 0x0705
 
 
 class MeteringParmeter(Enum):
     current_summation_delivered = 0x0000
+    current_summation_received = 0x0001
+    supply_status = 0x0014
+    status = 0x0200
+    ambient_consumption_indicator = 0x0207
+    site_id = 0x0307
+    customer_id_number = 0x0311
     instantaneous_demand = 0x0400
+    current_day_consumption_delivered = 0x0401
+    previous_day_consumption_delivered = 0x0403
+    current_week_consumption_delivered = 0x0430
+    previous_week_consumption_delivered = 0x0432
+    current_month_consumption_delivered = 0x0440
+    previous_month_consumption_delivered = 0x0442
+    bill_to_date_delivered = 0x0A00
+    bill_delivered_trailing_digit = 0x0A04
+    current_day_alternative_consumption_delivered = 0x0C01
+    previous_day_alternative_consumption_delivered = 0x0C03
+    current_week_alternative_consumption_delivered = 0x0C30
+    previous_week_alternative_consumption_delivered = 0x0C32
+    current_month_alternative_consumption_delivered = 0x0C40
+    previous_month_alternative_consumption_delivered = 0x0C42
+
+
+class PrepaymentParameter(Enum):
+    payment_control_configuration = 0x0000
+    current_day_cost_consumption_delivered = 0x051C
+    previous_day_cost_consumption_delivered = 0x051E
+    current_week_cost_consumption_delivered = 0x0530
+    previous_week_cost_consumption_delivered = 0x0532
+    current_month_cost_consumption_delivered = 0x0540
+    previous_month_cost_consumption_delivered = 0x0542
 
 
 class Encodings(Enum):
