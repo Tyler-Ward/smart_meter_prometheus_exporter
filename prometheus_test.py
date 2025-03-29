@@ -3,46 +3,70 @@ from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGIS
 from prometheus_client.registry import Collector
 import prometheus_client.registry
 import decoder
+import time
 
 
-smart_meter_electric_metering_instantaneous_demand_watts = None
-smart_meter_electric_metering_current_summation_delivered_watthours = None
-smart_meter_gas_metering_current_summation_delivered_m3 = None
+def value_modifier_div_1000(value):
+    return value/1000
 
+output_fields=[
+    {
+        "meter": b'\x99\x57',
+        "cluster": decoder.Cluster.metering.value,
+        "attribute": decoder.MeteringParmeter.instantaneous_demand.value,
+        "metric_type": GaugeMetricFamily,
+        "metric_name": "smart_meter_electric_metering_instantaneous_demand_watts",
+        "metric_description": "instentaneous power reported by the smart meter in watts"
+    },
+    {
+        "meter": b'\x99\x57',
+        "cluster": decoder.Cluster.metering.value,
+        "attribute": decoder.MeteringParmeter.current_summation_delivered.value,
+        "metric_type": CounterMetricFamily,
+        "metric_name": "smart_meter_electric_metering_current_summation_delivered_watthours",
+        "metric_description": "current meter reading in watt hours",
+    },
+    {
+        "meter": b'\x00\x00',
+        "cluster": decoder.Cluster.metering.value,
+        "attribute": decoder.MeteringParmeter.current_summation_delivered.value,
+        "attribute_modifier": value_modifier_div_1000,
+        "metric_type": CounterMetricFamily,
+        "metric_name": "smart_meter_gas_metering_current_summation_delivered_m3",
+        "metric_description": "current meter reading in cubic meters",
+    }
+    ]
+
+
+all_data = dict()
+
+def get_attribute(meter, cluster, attribute):
+    '''Gets a value from the data structure'''
+    if meter in all_data:
+        if cluster in all_data[meter]:
+            if attribute in all_data[meter][cluster]:
+                return all_data[meter][cluster][attribute]
+    return None
 
 def process_data_block(data):
     global smart_meter_electric_metering_instantaneous_demand_watts
     global smart_meter_electric_metering_current_summation_delivered_watthours
     global smart_meter_gas_metering_current_summation_delivered_m3
+    global all_data
 
     data = decoder.decode_data_block(data)
 
     if data[0] == 0x00:
         decoded = decoder.value_decoder(data)
 
-        if decoded["meter"] == b'\x00\x99\x57\x01':
-            # elec meter
-            if decoded["cluster"] == decoder.Cluster.metering.value:
-                # metering
-                if decoder.MeteringParmeter.instantaneous_demand.value in decoded["parameters"]:
-                    # current power
-                    smart_meter_electric_metering_instantaneous_demand_watts = decoded["parameters"][decoder.MeteringParmeter.instantaneous_demand.value]["value"]
-                    print("current_usage = {} w".format(smart_meter_electric_metering_instantaneous_demand_watts))
-                if decoder.MeteringParmeter.current_summation_delivered.value in decoded["parameters"]:
-                    # meter reading
-                    smart_meter_electric_metering_current_summation_delivered_watthours = decoded["parameters"][decoder.MeteringParmeter.current_summation_delivered.value]["value"]
-                    print("meter reading = {} kwh".format(smart_meter_electric_metering_current_summation_delivered_watthours/1000))
+        if decoded["meter"] not in all_data:
+            all_data[decoded["meter"]] = dict()
+        if decoded["cluster"] not in all_data[decoded["meter"]]:
+            all_data[decoded["meter"]][decoded["cluster"]]=dict()
 
-        if decoded["meter"] == b'\x00\x00\x00\x02':
-            # gas meter
-            if decoded["cluster"] == decoder.Cluster.metering.value:
-                # metering
-                if decoder.MeteringParmeter.current_summation_delivered.value in decoded["parameters"]:
-                    # meter reading
-                    smart_meter_gas_metering_current_summation_delivered_m3 = decoded["parameters"][decoder.MeteringParmeter.current_summation_delivered.value]["value"]/1000
-                    print("gas meter reading = {} m3".format(smart_meter_gas_metering_current_summation_delivered_m3))
-
-
+        for attribute in decoded["parameters"]:
+            all_data[decoded["meter"]][decoded["cluster"]][attribute] = decoded["parameters"][attribute]
+            all_data[decoded["meter"]][decoded["cluster"]][attribute]["updated"] = time.time()
 
 
 #prometheus_client.disable_created_metrics()
@@ -55,23 +79,18 @@ class MeterCollector(Collector):
 
     def collect(self):
         print("collecting")
-        if smart_meter_electric_metering_instantaneous_demand_watts is not None:
-            yield GaugeMetricFamily(
-                "smart_meter_electric_metering_instantaneous_demand_watts",
-                "instentaneous power reported by the smart meter om watts",
-                value = smart_meter_electric_metering_instantaneous_demand_watts )
-        if smart_meter_electric_metering_current_summation_delivered_watthours is not None:
-            yield CounterMetricFamily(
-                "smart_meter_electric_metering_current_summation_delivered_watthours", 
-                "current meter reading in watt hours",
-                value = smart_meter_electric_metering_current_summation_delivered_watthours)
-        if smart_meter_gas_metering_current_summation_delivered_m3 is not None:
-            yield CounterMetricFamily(
-                "smart_meter_gas_metering_current_summation_delivered_m3",
-                "current meter reading in cubic meters",
-                value = smart_meter_gas_metering_current_summation_delivered_m3)
+        for item in output_fields:
+            attribute = get_attribute(item["meter"],item["cluster"],item["attribute"])
+            if attribute is not None:
+                value = attribute["value"]
+                if "attribute_modifier" in item:
+                    value = item["attribute_modifier"](value)
 
-
+                yield item["metric_type"](
+                        item["metric_name"],
+                        item["metric_description"],
+                        value = value
+                        )
 
 serialPort = serial.Serial(
     port="/dev/ttyUSB0", baudrate=115200

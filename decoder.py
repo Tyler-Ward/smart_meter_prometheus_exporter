@@ -56,7 +56,7 @@ def decode_data_block(data: bytes) -> bytes:
 
 def value_decoder(data: bytes):
 
-    meter_id = data[0:4]
+    meter_id = data[1:3]
     cluster = int.from_bytes(data[4:6], "little")
     parameters = dict()
 
