@@ -4,6 +4,8 @@ from prometheus_client.registry import Collector
 import prometheus_client.registry
 import decoder
 import time
+import recorder
+import os
 
 
 def value_modifier_div_1000(output, value):
@@ -349,6 +351,11 @@ reading_block = False
 REGISTRY.register(MeterCollector())
 prometheus_client.start_http_server(8000)
 
+record_data = os.getenv("RECORD_DATA", 'False').lower() in ('true', '1', 't')
+
+if record_data:
+    recorder.setup_output("/packet_logs")
+
 while 1:
     # Read data out of the buffer until a carraige return / new line is found
     data = serialPort.read()
@@ -357,7 +364,8 @@ while 1:
         if (reading_block):
             data_buffer.append(byte)
             if byte == 0xF2:
-                #print(data_buffer.hex(" "))
+                if record_data:
+                    recorder.save_data_block(data_buffer)
                 process_data_block(data_buffer)
                 data_buffer.clear()
                 reading_block = False

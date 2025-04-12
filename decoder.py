@@ -2,9 +2,13 @@ from enum import Enum
 
 
 class Cluster(Enum):
+    time = 0x000A
     metering = 0x0702
     prepayment = 0x0705
 
+
+class TimeParameter(Enum):
+    time = 0x0000
 
 class MeteringParmeter(Enum):
     current_summation_delivered = 0x0000
