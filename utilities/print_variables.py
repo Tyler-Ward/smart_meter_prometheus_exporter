@@ -5,7 +5,6 @@ all_data = dict()
 
 
 def process_data_block(data):
-    global all_data
 
     data = decoder.decode_data_block(data)
 
@@ -101,4 +100,3 @@ def print_variables(file_name):
         for attribute in dict(sorted(combined_data[cluster].items())):
             type_name = decoder.Encodings(combined_data[cluster][attribute]["type"]).name
             print("   {:04X} ({}) - {}".format(attribute, attribute, type_name))
-

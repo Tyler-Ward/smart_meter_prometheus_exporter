@@ -3,6 +3,7 @@ import logging.handlers
 
 logger = None
 
+
 def setup_output(directory=".") -> None:
     global logger
 
@@ -14,6 +15,4 @@ def setup_output(directory=".") -> None:
 
 
 def save_data_block(data_buffer: bytearray) -> None:
-    global logger
-
     logger.error(data_buffer.hex(" "))

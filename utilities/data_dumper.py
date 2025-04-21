@@ -17,4 +17,3 @@ def dump_data(port, file_name):
 
             file.write(data.hex(","))
             file.write(",")
-

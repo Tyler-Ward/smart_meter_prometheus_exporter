@@ -10,6 +10,7 @@ class Cluster(Enum):
 class TimeParameter(Enum):
     time = 0x0000
 
+
 class MeteringParmeter(Enum):
     current_summation_delivered = 0x0000
     current_summation_received = 0x0001
@@ -140,7 +141,9 @@ def value_decoder(data: bytes):
             value = int.from_bytes(data[marker:marker+4], "little", signed=False)
             marker += 4
         else:
-            print("unrecognised data encoding {:04X} in atibute {:04X} and cluster {:04X}".format(encoding, attribute, cluster))
+            print(
+                "unrecognised data encoding {:04X} in atibute {:04X} and cluster {:04X}"
+                .format(encoding, attribute, cluster))
             print(data.hex(" "))
             return None
 
@@ -151,4 +154,3 @@ def value_decoder(data: bytes):
         "cluster": cluster,
         "parameters": parameters
     }
-

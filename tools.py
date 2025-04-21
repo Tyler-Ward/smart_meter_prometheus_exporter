@@ -39,6 +39,7 @@ def record_packets(port):
     """save timestamped packets"""
     utilities.packet_recorder.record_packets(port)
 
+
 @cli.command()
 @click.argument('file_name')
 def print_timings(file_name):
@@ -48,4 +49,3 @@ def print_timings(file_name):
 
 if __name__ == "__main__":
     cli()
-

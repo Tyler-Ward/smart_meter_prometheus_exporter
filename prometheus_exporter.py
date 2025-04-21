@@ -11,21 +11,24 @@ import os
 def value_modifier_div_1000(output, value):
     return value/1000
 
+
 def bill_to_date_conversion(output, value):
-    trailing_digits_attribute = get_attribute(output["meter"],
+    trailing_digits_attribute = get_attribute(
+        output["meter"],
         decoder.Cluster.metering.value,
         decoder.MeteringParmeter.bill_delivered_trailing_digit.value)
     trailing_digits = trailing_digits_attribute["value"] >> 4
 
     return value / pow(10, trailing_digits)
 
+
 def prepayment_currency_converion(output, value):
     # this value is stored in another register however this is not read by the device
     return value / pow(10, 5)
 
 
-output_fields=[
-    #electric
+output_fields = [
+    # electric
     {
         "meter": b'\x99\x57',
         "cluster": decoder.Cluster.metering.value,
@@ -288,6 +291,7 @@ output_fields=[
 
 all_data = dict()
 
+
 def get_attribute(meter, cluster, attribute):
     '''Gets a value from the data structure'''
     if meter in all_data:
@@ -296,12 +300,8 @@ def get_attribute(meter, cluster, attribute):
                 return all_data[meter][cluster][attribute]
     return None
 
-def process_data_block(data):
-    global smart_meter_electric_metering_instantaneous_demand_watts
-    global smart_meter_electric_metering_current_summation_delivered_watthours
-    global smart_meter_gas_metering_current_summation_delivered_m3
-    global all_data
 
+def process_data_block(data):
     data = decoder.decode_data_block(data)
 
     if data[0] == 0x00:
@@ -310,14 +310,11 @@ def process_data_block(data):
         if decoded["meter"] not in all_data:
             all_data[decoded["meter"]] = dict()
         if decoded["cluster"] not in all_data[decoded["meter"]]:
-            all_data[decoded["meter"]][decoded["cluster"]]=dict()
+            all_data[decoded["meter"]][decoded["cluster"]] = dict()
 
         for attribute in decoded["parameters"]:
             all_data[decoded["meter"]][decoded["cluster"]][attribute] = decoded["parameters"][attribute]
             all_data[decoded["meter"]][decoded["cluster"]][attribute]["updated"] = time.time()
-
-
-#prometheus_client.disable_created_metrics()
 
 
 class MeterCollector(Collector):
@@ -328,7 +325,7 @@ class MeterCollector(Collector):
     def collect(self):
         print("collecting")
         for item in output_fields:
-            attribute = get_attribute(item["meter"],item["cluster"],item["attribute"])
+            attribute = get_attribute(item["meter"], item["cluster"], item["attribute"])
             if attribute is not None:
                 value = attribute["value"]
                 if "attribute_modifier" in item:
@@ -337,8 +334,9 @@ class MeterCollector(Collector):
                 yield item["metric_type"](
                         item["metric_name"],
                         item["metric_description"],
-                        value = value
+                        value=value
                         )
+
 
 serialPort = serial.Serial(
     port="/dev/ttyUSB0", baudrate=115200
@@ -373,4 +371,3 @@ while 1:
             if byte == 0xF1:
                 data_buffer.append(byte)
                 reading_block = True
-

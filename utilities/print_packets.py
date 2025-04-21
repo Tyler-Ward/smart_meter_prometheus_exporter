@@ -39,4 +39,3 @@ def print_packets(file_name):
             marker += 1
         block = data[start:marker]
         # print(block)
-
