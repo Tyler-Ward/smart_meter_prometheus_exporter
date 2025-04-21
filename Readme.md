@@ -4,6 +4,7 @@ Prometheus exporter for smart meter data
 This software is designed to decode serial data outputed by the smart view 3 IHD supplied with some UK smart meters and make it avalible as metrics that can be read by [prometheus](https://prometheus.io/).
 The software can output meter reading data as well as information on current and previous usage and costs
 The easiest way to use this is to run it as a docker container, however the software can also be run on a host directly if prefered.
+More infomation on how this was created can be found in the [blog post][blog-post] about this project
 
 ![Dashboard](images/dashboard.png "Grafana dashboard")
 
@@ -83,5 +84,5 @@ Note the display requres a micro USB cable with a small end so not all cables wi
 | GND           | GND        |
 
 
-
+[blog-post]: https://www.scorpia.co.uk/2025/04/21/extracting-power-data-from-a-smart-meter-display/
 [grafana-dashboard]: https://grafana.com/grafana/dashboards/23295
