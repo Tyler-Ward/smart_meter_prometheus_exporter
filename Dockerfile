@@ -5,6 +5,7 @@ ADD requirements.txt /
 RUN pip install -r /requirements.txt
 
 ADD prometheus_exporter.py /
+ADD prometheus_metrics.py /
 ADD decoder.py /
 ADD recorder.py /
 
